@@ -182,54 +182,6 @@ const LandingPage = () => {
               </div>
             </div>
           </div>
-          
-          {/* Testimonials */}
-          <div className="mb-20">
-            <h2 className={`text-3xl font-bold text-center mb-12 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              What Our Users Say
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Sarah Johnson",
-                  role: "Digital Marketing Manager",
-                  quote: "PhishGuard has saved me multiple times from clicking on suspicious links. The real-time scanning is incredibly fast and reliable."
-                },
-                {
-                  name: "Michael Chen",
-                  role: "Software Developer",
-                  quote: "As someone who receives hundreds of emails daily, the URL scanning feature helps me quickly verify the legitimacy of links before clicking."
-                },
-                {
-                  name: "Emily Rodriguez",
-                  role: "Financial Advisor",
-                  quote: "In finance, security is paramount. PhishGuard gives me peace of mind knowing I'm protected from the latest phishing attempts."
-                }
-              ].map((testimonial, index) => (
-                <div 
-                  key={index}
-                  className={`rounded-lg p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-md`}
-                >
-                  <div className="flex flex-col h-full">
-                    <div className="flex-grow">
-                      <p className={`italic mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                        "{testimonial.quote}"
-                      </p>
-                    </div>
-                    <div>
-                      <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {testimonial.name}
-                      </p>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {testimonial.role}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
       
