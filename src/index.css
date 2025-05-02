@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+/* Animation for QR scanner */
+@keyframes scan {
+  0% {
+    top: 25%;
+  }
+  50% {
+    top: 75%;
+  }
+  100% {
+    top: 25%;
+  }
+}
+
+.animate-scan {
+  animation: scan 2s linear infinite;
+}
