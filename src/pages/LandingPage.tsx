@@ -172,10 +172,12 @@ const LandingPage = () => {
                     Get Started Free
                   </Link>
                   <a 
-                    href="#"
+                    href="https://www.ncsc.gov.uk/section/advice-guidance/you-your-family"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center justify-center px-8 py-3 text-lg font-medium rounded-lg border border-blue-300 text-white hover:bg-blue-800 transition-colors duration-150"
                   >
-                    <span>Learn More</span>
+                    <span>Security Guidance</span>
                     <ExternalLink className="ml-2 h-5 w-5" />
                   </a>
                 </div>
