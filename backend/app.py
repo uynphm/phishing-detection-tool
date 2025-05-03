@@ -5,6 +5,7 @@ from enum import Enum
 from tld import get_tld, exceptions
 
 import re
+import requests
 
 class Threat(Enum):
     INVALID_PROTOCOL = "Invalid URL protocol"
@@ -16,12 +17,18 @@ class Threat(Enum):
     TOO_LONG = "URL is unusually long"
     SUSPICIOUS_KEYWORDS = "Contains suspicious keywords"
     SERVER_ERROR = "Server error"
+    PHISHTANK_BLACKLISTED = "URL found in PhishTank blacklist"
 
 WEB_PROTOCOLS = ['http', 'https']
 PHISHING_KEYWORDS = ['login', 'verify', 'bank']
 
+# use public downloadable dataset instead because PhishTank no longer allows new account signups
+PHISHTANK_JSON_URL = "http://data.phishtank.com/data/online-valid.json"
+
 app = Flask(__name__)
 CORS(app)
+
+phishtank_blacklist = set()
 
 @app.route('/api/testsetup')
 def testsetup():
@@ -41,17 +48,17 @@ def scan_url():
         return jsonify({"error": "No URL provided"}), 400
     
     score1, threats1 = analyze_url_structure(url)
-    # score2, threats2 = check_blacklist(url)
+    score2, threats2 = check_blacklist(url)
     # score3, threats3 = predict_with_ml(url)
 
     return jsonify({
         "url": url,
-        "score": score1, # max(int((score1 + score2 + score3)/3), 0)
-        "threats": threats1 # + threats2 + threats3
+        "score": max((score1 + score2)/3, 0),
+        "threats": threats1 + threats2 # + threats3
     })
 
-# 1. parsing the url check for the patterns
 def analyze_url_structure(url: str) -> tuple[float, list[str]]:
+    """1. parsing the url check for the patterns"""
     score = 100.0
     threats = []
     try:
@@ -100,14 +107,26 @@ def analyze_url_structure(url: str) -> tuple[float, list[str]]:
         score = 0.0
     return max(score, 0), threats
 
-# 2. check against the PhishTank database to see if the url in it
 def check_blacklist(url: str) -> tuple[float, list[str]]:
-    score = 100.0
-    threats = []
-    # Placeholder — return (score, threats)
+    """2. check against the PhishTank database to see if the url in it"""
+    if (url in phishtank_blacklist):
+        return 0.0, [Threat.PHISHTANK_BLACKLISTED]
+    return 100.0, []
+    
+def load_phishtank_json():
+    """Downloads PhishTank JSON feed and returns a set of phishing URLs"""
+    global phishtank_blacklist
+    try:
+        response = requests.get("http://data.phishtank.com/data/online-valid.json")
+        response.raise_for_status()
+        data = response.json()
+        phishtank_blacklist = {entry['url'] for entry in data['entries']}
+        print(f"[PhishTank] Loaded {len(phishtank_blacklist)} entries.")
+    except Exception as e:
+        print(f"[PhishTank] Failed to load blacklist: {e}")
 
-# 3. ml intergration
 def predict_with_ml(url: str) -> tuple[float, list[str]]:
+    """3. ml intergration"""
     score = 100.0
     threats = []
     # Placeholder — return (score, threats)
@@ -115,4 +134,5 @@ def predict_with_ml(url: str) -> tuple[float, list[str]]:
 
 
 if __name__ == '__main__':
+    load_phishtank_json()
     app.run(debug=True)
