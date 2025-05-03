@@ -13,10 +13,11 @@ const LoginPage = () => {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState('');
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
   
-  // If user is already logged in, redirect to dashboard
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
@@ -27,7 +28,6 @@ const LoginPage = () => {
     e.preventDefault();
     setFormError('');
     
-    // Simple form validation
     if (!email.trim()) {
       setFormError('Email is required');
       return;
@@ -39,9 +39,11 @@ const LoginPage = () => {
     }
     
     try {
-      await login(email, password);
+      await login(email, password, twoFactorCode);
     } catch (err) {
-      // Error handling is done in AuthContext
+      if (err instanceof Error && err.message === '2FA_REQUIRED') {
+        setShowTwoFactor(true);
+      }
     }
   };
   
@@ -81,85 +83,111 @@ const LoginPage = () => {
           
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="rounded-md shadow-sm space-y-4">
-              <div>
-                <label htmlFor="email" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`mt-1 block w-full px-3 py-2 rounded-md ${
-                    darkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                      : 'border-gray-300 text-gray-900 placeholder-gray-500'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  placeholder="you@example.com"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="password" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Password
-                </label>
-                <div className="relative">
+              {!showTwoFactor ? (
+                <>
+                  <div>
+                    <label htmlFor="email" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Email address
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`mt-1 block w-full px-3 py-2 rounded-md ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                          : 'border-gray-300 text-gray-900 placeholder-gray-500'
+                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="password" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`mt-1 block w-full px-3 py-2 rounded-md ${
+                          darkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                            : 'border-gray-300 text-gray-900 placeholder-gray-500'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className={`absolute inset-y-0 right-0 pr-3 flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label htmlFor="twoFactorCode" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Two-Factor Authentication Code
+                  </label>
                   <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
+                    id="twoFactorCode"
+                    name="twoFactorCode"
+                    type="text"
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value)}
                     className={`mt-1 block w-full px-3 py-2 rounded-md ${
                       darkMode 
                         ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                         : 'border-gray-300 text-gray-900 placeholder-gray-500'
                     } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    placeholder="••••••••"
+                    placeholder="Enter your 2FA code"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute inset-y-0 right-0 pr-3 flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
                 </div>
-              </div>
+              )}
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className={`h-4 w-4 rounded focus:ring-2 focus:ring-blue-500 ${
-                    darkMode 
-                      ? 'bg-gray-700 border-gray-600 text-blue-600' 
-                      : 'border-gray-300 text-blue-600'
-                  }`}
-                />
-                <label htmlFor="remember-me" className={`ml-2 block text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Remember me
-                </label>
+            {!showTwoFactor && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className={`h-4 w-4 rounded focus:ring-2 focus:ring-blue-500 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-blue-600' 
+                        : 'border-gray-300 text-blue-600'
+                    }`}
+                  />
+                  <label htmlFor="remember-me" className={`ml-2 block text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Remember me
+                  </label>
+                </div>
+                
+                <div className="text-sm">
+                  <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                    Forgot your password?
+                  </a>
+                </div>
               </div>
-              
-              <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
+            )}
             
             <div>
               <button
@@ -174,7 +202,7 @@ const LoginPage = () => {
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                   <Lock className="h-5 w-5 text-blue-500 group-hover:text-blue-400" />
                 </span>
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {isLoading ? 'Signing in...' : showTwoFactor ? 'Verify Code' : 'Sign in'}
               </button>
             </div>
             

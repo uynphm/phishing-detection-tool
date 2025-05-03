@@ -90,7 +90,7 @@ const SignupPage = () => {
     
     try {
       await signup(name, email, password);
-    } catch (err) {
+    } catch {
       // Error handling is done in AuthContext
     }
   };

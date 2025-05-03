@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Camera, AlertTriangle, Shield, Loader2 } from 'lucide-react';
+import { Camera, AlertTriangle, Loader2 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 const QrScanner = () => {
@@ -9,7 +9,7 @@ const QrScanner = () => {
 
   const startScanner = () => {
     setCameraActive(true);
-    // In a real implementation, you would initialize the QR scanner here
+    setIsScanning(true);
   };
 
   const stopScanner = () => {
