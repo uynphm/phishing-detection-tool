@@ -225,14 +225,14 @@ def log_scan():
     timestamp = data.get('timestamp') or datetime.now().isoformat()
 
     if not all([username, url, score is not None]):
-        return jsonify({"error": "Missing required fields (username, url, score)"}), 400
+        return jsonify({"success": False, "message": "Missing required fields (username, url, score)"}), 400
 
     try:
         insert_scan_db(username, url, score, threats, timestamp)
         return jsonify({"success": True, "message": "Scan logged successfully"}), 200
     except Exception as e:
         print(f"[ERROR] Failed to log scan: {e}")
-        return jsonify({"error": "Failed to log scan"}), 500
+        return jsonify({"success": False, "message": "Failed to log scan"}), 500
 
 
 
