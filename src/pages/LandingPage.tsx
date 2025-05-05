@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, ExternalLink, CheckCircle, Lock, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -7,7 +6,6 @@ import Footer from '../components/Footer';
 
 const LandingPage = () => {
   const { darkMode } = useTheme();
-  const [url, setUrl] = useState('');
   
   return (
     <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
@@ -46,66 +44,10 @@ const LandingPage = () => {
                 Login
               </Link>
             </div>
-          </div>
-          
-          {/* Quick Scanner */}
-          <div className={`max-w-4xl mx-auto mb-20 rounded-xl shadow-lg overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <div className={`px-6 py-5 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-              <div className="flex items-center space-x-2">
-                <Shield className={`h-5 w-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Try Our Scanner</h2>
-              </div>
-            </div>
             
-            <div className="p-6">
-              <p className={`mb-4 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                Paste any suspicious URL to instantly analyze it for potential threats
-              </p>
-              
-              <form className="space-y-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="Enter a URL to check for phishing"
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      darkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                        : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                    } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  />
-                </div>
-                
-                <div className="flex space-x-3">
-                  <button
-                    type="submit"
-                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-150"
-                  >
-                    <Shield className="h-5 w-5" />
-                    <span>Analyze</span>
-                  </button>
-                  
-                  <button
-                    type="button"
-                    className={`px-4 py-3 rounded-lg font-medium ${
-                      darkMode 
-                        ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' 
-                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                    } transition-colors duration-150`}
-                  >
-                    Load Sample
-                  </button>
-                </div>
-              </form>
-              
-              <p className={`mt-3 text-xs text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                <Link to="/signup" className="underline hover:text-blue-500">
-                  Create a free account
-                </Link>{' '}
-                for unlimited scans and detailed reports.
-              </p>
-            </div>
+            <p className={`mt-4 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Create an account to access our advanced phishing detection tools
+            </p>
           </div>
           
           {/* Features */}
