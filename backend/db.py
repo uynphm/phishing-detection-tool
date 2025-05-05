@@ -4,7 +4,7 @@ import os
 
 load_dotenv()
 DB_PATH = os.getenv("DATABASE_URL") or "test.db"
-DB_TIMEOUT = int(os.getenv("DB_TIMEOUT", 5))
+DB_TIMEOUT = int(os.getenv("DB_TIMEOUT") or 5)
 
 def init_db():
     try:
