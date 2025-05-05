@@ -25,8 +25,8 @@ const ScanHistory = () => {
       if (user) {
         try {
           // TODO: replace with actual username
-          // const response = await fetch(`http://localhost:5001/api/history?username=${encodeURIComponent(username)}`);
-          const response = await fetch(`http://localhost:5001/api/history?username=${'user'}`);
+          const response = await fetch(`http://localhost:5001/api/history?username=${encodeURIComponent('user')}`);
+          // const response = await fetch(`http://localhost:5001/api/history?username=${'user'}`);
           if (!response.ok) throw new Error('Failed to fetch history');
           const data = await response.json();
 
@@ -34,7 +34,7 @@ const ScanHistory = () => {
             id: `${idx}-${entry.timestamp}`,
             url: entry.url,
             score: entry.score,
-            safe: entry.score > 30,
+            safe: entry.score > 70,
             timestamp: entry.timestamp,
             userId: user.id
           }));
