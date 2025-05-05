@@ -1,0 +1,229 @@
+{
+  "summary": {
+    "total_tests": 10,
+    "correct_predictions": 8,
+    "accuracy": 80.0
+  },
+  "detailed_results": [
+    {
+      "url": "https://www.sjsu.edu",
+      "description": "SJSU official website",
+      "expected": false,
+      "predicted": false,
+      "probability": 0.5207468019953351,
+      "confidence": 0.0792531980046649,
+      "score": 47,
+      "correct": true,
+      "model_predictions": {
+        "random_forest": false,
+        "gradient_boosting": false,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.48113668780955865,
+        "gradient_boosting": 0.4516577079103598,
+        "logistic": 0.9920117121481344,
+        "mlp": 0.9982957863801032
+      }
+    },
+    {
+      "url": "https://www.google.com",
+      "description": "Google official website",
+      "expected": false,
+      "predicted": false,
+      "probability": 0.5207364465596734,
+      "confidence": 0.07926355344032654,
+      "score": 47,
+      "correct": true,
+      "model_predictions": {
+        "random_forest": false,
+        "gradient_boosting": false,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.48113668780955865,
+        "gradient_boosting": 0.4516577079103598,
+        "logistic": 0.9919011963684574,
+        "mlp": 0.9981991934465462
+      }
+    },
+    {
+      "url": "https://github.com",
+      "description": "GitHub official website",
+      "expected": false,
+      "predicted": false,
+      "probability": 0.5115891457291615,
+      "confidence": 0.0884108542708385,
+      "score": 48,
+      "correct": true,
+      "model_predictions": {
+        "random_forest": false,
+        "gradient_boosting": false,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.4786660719757993,
+        "gradient_boosting": 0.4319340344847787,
+        "logistic": 0.9903303088352416,
+        "mlp": 0.9993196101117665
+      }
+    },
+    {
+      "url": "https://www.paypal.com",
+      "description": "PayPal official website",
+      "expected": false,
+      "predicted": false,
+      "probability": 0.5207431583772603,
+      "confidence": 0.07925684162273972,
+      "score": 47,
+      "correct": true,
+      "model_predictions": {
+        "random_forest": false,
+        "gradient_boosting": false,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.48113668780955865,
+        "gradient_boosting": 0.4516577079103598,
+        "logistic": 0.9919257864272106,
+        "mlp": 0.9983088397395297
+      }
+    },
+    {
+      "url": "https://www.amazon.com",
+      "description": "Amazon official website",
+      "expected": false,
+      "predicted": false,
+      "probability": 0.5207382467316152,
+      "confidence": 0.0792617532683848,
+      "score": 47,
+      "correct": true,
+      "model_predictions": {
+        "random_forest": false,
+        "gradient_boosting": false,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.48113668780955865,
+        "gradient_boosting": 0.4516577079103598,
+        "logistic": 0.9919079418545318,
+        "mlp": 0.9982284513993067
+      }
+    },
+    {
+      "url": "http://paypa1-secure.com",
+      "description": "PayPal phishing attempt",
+      "expected": true,
+      "predicted": true,
+      "probability": 0.7803902995098336,
+      "confidence": 0.9655433717741714,
+      "score": 21,
+      "correct": true,
+      "model_predictions": {
+        "random_forest": true,
+        "gradient_boosting": true,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.5980737463305743,
+        "gradient_boosting": 0.9655433717741714,
+        "logistic": 0.9816355055896376,
+        "mlp": 0.9210860471079199
+      }
+    },
+    {
+      "url": "https://amaz0n-account.com",
+      "description": "Amazon phishing attempt",
+      "expected": true,
+      "predicted": true,
+      "probability": 0.808915408718986,
+      "confidence": 0.6381190480929285,
+      "score": 19,
+      "correct": true,
+      "model_predictions": {
+        "random_forest": true,
+        "gradient_boosting": true,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.6381190480929285,
+        "gradient_boosting": 0.9751963349596576,
+        "logistic": 0.9955964340119347,
+        "mlp": 0.9999505797612407
+      }
+    },
+    {
+      "url": "http://google-verify.com",
+      "description": "Google phishing attempt",
+      "expected": true,
+      "predicted": false,
+      "probability": 0.4731014750264123,
+      "confidence": 0.12689852497358767,
+      "score": 52,
+      "correct": false,
+      "model_predictions": {
+        "random_forest": false,
+        "gradient_boosting": false,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.47304580069787516,
+        "gradient_boosting": 0.398771076988561,
+        "logistic": 0.9604524622489085,
+        "mlp": 0.5809504153920979
+      }
+    },
+    {
+      "url": "https://netflix-account-update.com",
+      "description": "Netflix phishing attempt",
+      "expected": true,
+      "predicted": true,
+      "probability": 0.5912011040014619,
+      "confidence": 0.6985408094027165,
+      "score": 40,
+      "correct": true,
+      "model_predictions": {
+        "random_forest": false,
+        "gradient_boosting": true,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.4962780940319554,
+        "gradient_boosting": 0.6088865741671755,
+        "logistic": 0.9904577600090185,
+        "mlp": 0.9996907863632609
+      }
+    },
+    {
+      "url": "http://apple-id-verify.com",
+      "description": "Apple phishing attempt",
+      "expected": true,
+      "predicted": false,
+      "probability": 0.4783687172325846,
+      "confidence": 0.12163128276741536,
+      "score": 52,
+      "correct": false,
+      "model_predictions": {
+        "random_forest": false,
+        "gradient_boosting": false,
+        "logistic": true,
+        "mlp": true
+      },
+      "model_probabilities": {
+        "random_forest": 0.47304580069787516,
+        "gradient_boosting": 0.398771076988561,
+        "logistic": 0.9624137529685511,
+        "mlp": 0.684333968795902
+      }
+    }
+  ]
+}

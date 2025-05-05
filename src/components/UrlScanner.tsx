@@ -1,191 +1,309 @@
-import { useState } from 'react';
-import { AlertTriangle, CheckCircle, Shield, Copy, Loader2 } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
+import { FaShieldAlt, FaExclamationTriangle, FaCheckCircle, FaInfoCircle } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 
-type ScanResult = {
-  url: string;
-  safe: boolean;
+interface ScanResult {
+  is_phishing: boolean;
+  probability: number;
+  confidence: number;
   score: number;
-  threats: string[];
-  timestamp: string;
-};
+  model_predictions: {
+    bert: boolean;
+  };
+  model_probabilities: {
+    bert: number;
+  };
+  is_suspicious: boolean;
+}
 
-const UrlScanner = () => {
-  const { darkMode } = useTheme();
+interface AxiosErrorResponse {
+  code?: string;
+  response?: {
+    status?: number;
+    data?: {
+      detail?: string;
+    };
+  };
+}
+
+interface ErrorResponse {
+  detail: string;
+}
+
+const UrlScanner: React.FC = () => {
   const [url, setUrl] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentStage, setCurrentStage] = useState<'idle' | 'preparing' | 'analyzing' | 'complete'>('idle');
+  const [retryCount, setRetryCount] = useState(0);
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) return;
-
-    setIsScanning(true);
+    setIsLoading(true);
+    setError(null);
     setResult(null);
+    setCurrentStage('preparing');
 
-    // Simulate API call
-    setTimeout(() => {
-      const isSafe = Math.random() > 0.3; // 70% chance of being safe for demo
-      
-      const threats = !isSafe 
-        ? [
-            'Suspicious domain',
-            'Known phishing patterns',
-            'Redirect chain detected',
-            'Blacklisted by security databases'
-          ].filter(() => Math.random() > 0.5)
-        : [];
-        
-      if (threats.length === 0 && !isSafe) {
-        threats.push('Suspicious URL structure');
+    try {
+      // Validate URL format
+      if (!url.match(/^https?:\/\/.+/)) {
+        throw new Error('Please enter a valid URL starting with http:// or https://');
       }
 
-      const result: ScanResult = {
-        url,
-        safe: isSafe,
-        score: isSafe ? Math.floor(Math.random() * 20) + 80 : Math.floor(Math.random() * 50),
-        threats,
-        timestamp: new Date().toISOString()
-      };
+      // Simulate stages for better UX
+      const stages = ['preparing', 'analyzing', 'complete'];
+      for (const stage of stages) {
+        setCurrentStage(stage as any);
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
 
-      setResult(result);
-      setIsScanning(false);
-    }, 2000);
+      const response = await axios.post<ScanResult | ErrorResponse>(
+        'http://127.0.0.1:5000/api/detect-phishing',
+        { url },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          timeout: 15000,
+          validateStatus: (status) => status < 500
+        }
+      );
+
+      if (response.status === 200 && 'is_phishing' in response.data) {
+        setResult(response.data as ScanResult);
+        setRetryCount(0);
+
+        // Save to history if user is logged in
+        if (user) {
+          try {
+            await axios.post(
+              'http://127.0.0.1:5000/api/save-scan',
+              {
+                url,
+                result: response.data,
+                userId: user.id
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+              }
+            );
+          } catch (error) {
+            console.error('Failed to save scan to history:', error);
+          }
+        }
+      } else {
+        const errorData = response.data as ErrorResponse;
+        throw new Error(errorData.detail || 'Failed to analyze URL');
+      }
+    } catch (error) {
+      const axiosError = error as AxiosErrorResponse;
+      
+      // Handle network errors
+      if (!axiosError.response) {
+        if (retryCount < 3) {
+          setRetryCount(prev => prev + 1);
+          setError(`Network error. Retrying... (${retryCount + 1}/3)`);
+          setTimeout(() => handleSubmit(e), 2000); // Retry after 2 seconds
+          return;
+        } else {
+          setError('Network error. Please check your internet connection and try again.');
+        }
+      } else if (axiosError.code === 'ECONNABORTED') {
+        setError('The request timed out. Please try again.');
+      } else if (axiosError.response?.status === 404) {
+        setError('The scanning service is currently unavailable. Please try again later.');
+      } else if (axiosError.response?.status === 400) {
+        setError(axiosError.response?.data?.detail || 'Invalid URL format. Please check and try again.');
+      } else if (axiosError.response?.status === 500) {
+        setError('An error occurred while analyzing the URL. Please try again later.');
+      } else if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
+      console.error('Error details:', error);
+    } finally {
+      setIsLoading(false);
+      setCurrentStage('idle');
+    }
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const getStageProgress = () => {
+    switch (currentStage) {
+      case 'preparing': return 30;
+      case 'analyzing': return 70;
+      case 'complete': return 100;
+      default: return 0;
+    }
+  };
+
+  const getSafetyLevel = (score: number) => {
+    if (score >= 80) return { level: 'High', color: 'text-green-500', bg: 'bg-green-100' };
+    if (score >= 60) return { level: 'Medium', color: 'text-yellow-500', bg: 'bg-yellow-100' };
+    return { level: 'Low', color: 'text-red-500', bg: 'bg-red-100' };
+  };
+
+  const getRecommendations = (result: ScanResult) => {
+    const recommendations = [];
+    
+    if (result.is_phishing) {
+      recommendations.push('Do not enter any personal information on this website');
+      recommendations.push('Do not click on any links or download files');
+      recommendations.push('Report this URL to your organization\'s IT security team');
+    } else if (result.is_suspicious) {
+      recommendations.push('Exercise caution when entering personal information');
+      recommendations.push('Verify the website\'s authenticity through official channels');
+      recommendations.push('Use two-factor authentication if available');
+    } else {
+      recommendations.push('The website appears to be safe');
+      recommendations.push('Still, always be cautious with personal information');
+      recommendations.push('Keep your browser and security software up to date');
+    }
+    
+    return recommendations;
   };
 
   return (
-    <div className={`rounded-xl shadow-lg overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-      <div className={`px-6 py-5 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-        <div className="flex items-center space-x-2">
-          <Shield className={`h-5 w-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-          <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>URL Scanner</h2>
-        </div>
-      </div>
-      
-      <div className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative">
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter a URL to check for phishing"
-              className={`w-full px-4 py-3 rounded-lg border ${
-                darkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            />
-            {url && (
-              <button
-                type="button"
-                onClick={copyToClipboard}
-                className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
-                  darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'
-                }`}
-              >
-                {copied ? (
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className={`h-4 w-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                )}
-              </button>
-            )}
-          </div>
-          
+    <div className="max-w-4xl mx-auto p-6">
+      <form onSubmit={handleSubmit} className="mb-8">
+        <div className="flex flex-col space-y-4">
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Enter URL to scan"
+            className="p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
           <button
             type="submit"
-            disabled={isScanning || !url.trim()}
-            className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium text-white ${
-              isScanning || !url.trim()
-                ? 'bg-blue-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-            } transition-colors duration-150`}
+            disabled={isLoading}
+            className={`p-3 rounded-lg text-white font-semibold ${
+              isLoading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
-            {isScanning ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Scanning...</span>
-              </>
-            ) : (
-              <>
-                <Shield className="h-5 w-5" />
-                <span>Scan URL</span>
-              </>
-            )}
+            {isLoading ? 'Scanning...' : 'Scan URL'}
           </button>
-        </form>
-        
-        {result && (
-          <div className={`mt-6 p-4 rounded-lg ${
-            result.safe
-              ? darkMode ? 'bg-green-900/20 border border-green-800' : 'bg-green-50 border border-green-200'
-              : darkMode ? 'bg-red-900/20 border border-red-800' : 'bg-red-50 border border-red-200'
-          }`}>
-            <div className="flex items-start space-x-3">
-              {result.safe ? (
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-              ) : (
-                <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
-              )}
-              
-              <div className="flex-1">
-                <h3 className={`font-medium ${
-                  result.safe
-                    ? darkMode ? 'text-green-400' : 'text-green-800'
-                    : darkMode ? 'text-red-400' : 'text-red-800'
-                }`}>
-                  {result.safe ? 'Safe URL Detected' : 'Warning: Potential Phishing URL'}
-                </h3>
-                
-                <p className={`mt-1 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {result.safe
-                    ? 'This URL appears to be legitimate and safe to visit.'
-                    : 'This URL shows characteristics commonly associated with phishing attempts.'}
-                </p>
-                
-                <div className="mt-3">
-                  <div className="text-xs font-medium">
-                    Trust Score: {result.score}/100
+        </div>
+      </form>
+
+      {isLoading && (
+        <div className="mb-8">
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <motion.div
+              className="bg-blue-600 h-2.5 rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${getStageProgress()}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+          <p className="text-sm text-gray-600 mt-2">
+            {currentStage === 'preparing' && 'Preparing URL analysis...'}
+            {currentStage === 'analyzing' && 'Analyzing URL for potential threats...'}
+            {currentStage === 'complete' && 'Analysis complete!'}
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-4 mb-4 text-red-700 bg-red-100 rounded-lg">
+          <FaExclamationTriangle className="inline-block mr-2" />
+          {error}
+        </div>
+      )}
+
+      {result && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-lg shadow-lg p-6"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">
+              {result.is_phishing ? '⚠️ Unsafe URL Detected' : '✅ Safe URL'}
+            </h2>
+            {result.is_phishing ? (
+              <FaExclamationTriangle className="text-red-500 text-3xl" />
+            ) : (
+              <FaCheckCircle className="text-green-500 text-3xl" />
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-2">Safety Assessment</h3>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className={`h-2.5 rounded-full ${
+                      result.score >= 80 ? 'bg-green-500' :
+                      result.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}
+                    style={{ width: `${result.score}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-sm text-gray-600">Safety Score: {result.score}%</p>
+                  <span className={`text-sm font-medium ${getSafetyLevel(result.score).color}`}>
+                    {getSafetyLevel(result.score).level} Safety
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Analysis Details</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span>BERT Model Prediction:</span>
+                    <span className={result.model_predictions.bert ? 'text-red-500' : 'text-green-500'}>
+                      {result.model_predictions.bert ? 'Unsafe' : 'Safe'}
+                    </span>
                   </div>
-                  <div className="mt-1 h-2 w-full bg-gray-300 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${
-                        result.score > 80 ? 'bg-green-500' : 
-                        result.score > 60 ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${result.score}%` }}
-                    />
+                  <div className="flex justify-between items-center">
+                    <span>Confidence Level:</span>
+                    <span className="text-blue-500">
+                      {(result.confidence * 100).toFixed(1)}%
+                    </span>
                   </div>
                 </div>
-                
-                {!result.safe && result.threats.length > 0 && (
-                  <div className="mt-3">
-                    <h4 className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      Detected Threats:
-                    </h4>
-                    <ul className="mt-1 space-y-1">
-                      {result.threats.map((threat, index) => (
-                        <li key={index} className={`text-xs flex items-center space-x-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          <span>•</span>
-                          <span>{threat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-2">Recommendations</h3>
+                <ul className="space-y-2">
+                  {getRecommendations(result).map((rec, index) => (
+                    <li key={index} className="flex items-start space-x-2">
+                      <FaInfoCircle className="text-blue-500 mt-1 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {result.is_suspicious && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h3 className="font-semibold text-yellow-800 mb-2">⚠️ Suspicious Patterns Detected</h3>
+                  <ul className="list-disc list-inside text-sm text-yellow-700">
+                    <li>Unusual domain structure</li>
+                    <li>Suspicious keywords present</li>
+                    <li>Mixed protocol usage</li>
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </motion.div>
+      )}
     </div>
   );
 };

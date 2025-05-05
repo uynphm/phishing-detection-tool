@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, AlertTriangle, CheckCircle, Search, ArrowUpDown } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 type ScanRecord = {
   id: string;
@@ -8,56 +9,32 @@ type ScanRecord = {
   safe: boolean;
   score: number;
   timestamp: string;
+  userId: string;
 };
 
 const ScanHistory = () => {
   const { darkMode } = useTheme();
+  const { user } = useAuth();
   const [history, setHistory] = useState<ScanRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
-  // Generate mock data
+  // Load user's scan history from localStorage
   useEffect(() => {
-    const mockData: ScanRecord[] = [
-      {
-        id: '1',
-        url: 'https://legitimatebank.com/login',
-        safe: true,
-        score: 92,
-        timestamp: '2025-05-15T10:23:45Z'
-      },
-      {
-        id: '2',
-        url: 'https://phishing-example.com/login',
-        safe: false,
-        score: 12,
-        timestamp: '2025-05-14T22:15:30Z'
-      },
-      {
-        id: '3',
-        url: 'https://shopping.example.com/products',
-        safe: true,
-        score: 95,
-        timestamp: '2025-05-14T16:45:20Z'
-      },
-      {
-        id: '4',
-        url: 'https://suspicious-login.net/verify',
-        safe: false,
-        score: 25,
-        timestamp: '2025-05-13T09:10:15Z'
-      },
-      {
-        id: '5',
-        url: 'https://email-verify.example.org/confirm',
-        safe: true,
-        score: 85,
-        timestamp: '2025-05-12T14:20:10Z'
+    if (user) {
+      const savedHistory = localStorage.getItem(`phishguard_scan_history_${user.id}`);
+      if (savedHistory) {
+        setHistory(JSON.parse(savedHistory));
       }
-    ];
-    
-    setHistory(mockData);
-  }, []);
+    }
+  }, [user]);
+
+  // Save scan history to localStorage whenever it changes
+  useEffect(() => {
+    if (user && history.length > 0) {
+      localStorage.setItem(`phishguard_scan_history_${user.id}`, JSON.stringify(history));
+    }
+  }, [history, user]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
