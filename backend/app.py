@@ -4,6 +4,8 @@ from urllib.parse import urlparse
 from enum import Enum
 from tld import get_tld, exceptions
 from dotenv import load_dotenv
+from db import *
+from datetime import datetime
 
 import re
 import requests
@@ -19,12 +21,10 @@ class Threat(Enum):
     TOO_LONG = "URL is unusually long"
     SUSPICIOUS_KEYWORDS = "Contains suspicious keywords"
     SERVER_ERROR = "Server error"
-    PHISHTANK_BLACKLISTED = "URL found in PhishTank blacklist"
+    GOOGLE_BLACKLISTED = "URL found in Google Safe Browsing blacklist"
 
 load_dotenv()
 SAFE_BROWSING_API_KEY = os.getenv("SAFE_BROWSING_API_KEY")
-DB_PATH = os.getenv("DATABASE_URL", "url_scanner.db")
-
 WEB_PROTOCOLS = ['http', 'https']
 PHISHING_KEYWORDS = ['login', 'verify', 'bank']
 
@@ -42,18 +42,70 @@ def testsetup():
         }
     ), 200
 
+@app.route('/api/login', methods=['POST'])
+def login():
+    """Check user's credentials
+        payload = {"url": "http://example.com"}
+        Return {
+            "success": True/False, 
+            "message": "Login successful/Invalid credentials"
+        }
+    """
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"success": False, "message": "Username and password required"}), 400
+
+    if check_user_credentials(username, password):
+        return jsonify({"success": True, "message": "Login successful"}), 200
+    else:
+        return jsonify({"success": False, "message": "Invalid credentials"}), 401
+
+
+@app.route('/api/signup', methods=['POST'])
+def signup():
+    """Add user's credentials
+        payload = {"url": "http://example.com"}
+        return {
+            "success": True/False, 
+            "message": "User created successfully/already exists"
+        }
+    """
+    data = request.get_json()
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+
+    if not username or not password:
+        return jsonify({"success": False, "message": "Username and password are required"}), 400
+
+    success = create_user(username, password)
+    if success:
+        return jsonify({"success": True, "message": "User created successfully"}), 201
+    else:
+        return jsonify({"success": False, "message": "User already exists"}), 409
+    
+
 @app.route('/api/scan-url', methods=['POST'])
 def scan_url():
+    """Scan a given URL for phishing risk using rules and Safe Browsing API
+        payload = {"url": "http://example.com"}
+        return {
+            "url": str,
+            "score": float,
+            "threats": list[str],
+            "timestamp": str (IOS format)
+        }
+    """
     data = request.json
     url = data.get('url', '').strip()
 
     if (not url): 
         return jsonify({"error": "No URL provided"}), 400
-    
+
     score1, threats1 = analyze_url_structure(url)
     score2, threats2 = check_blacklist(url)
-    # score3, threats3 = predict_with_ml(url)
-
     return jsonify({
         "url": url,
         "score": max((score1 + score2)/2, 0),
@@ -114,7 +166,7 @@ def check_blacklist(url: str) -> tuple[float, list[str]]:
     """2. check against the PhishTank database to see if the url in it"""
     if (check_with_google_safe_browsing(url)):
         return 100.0, []
-    return 0.0, [Threat.PHISHTANK_BLACKLISTED.value]
+    return 0.0, [Threat.GOOGLE_BLACKLISTED.value]
 
 def check_with_google_safe_browsing(url: str) -> bool:
     """Returns True if the URL is not found in Google's Safe Browsing threat list."""
@@ -137,6 +189,53 @@ def check_with_google_safe_browsing(url: str) -> bool:
     return len(data.get("matches", [])) == 0
 
 
+@app.route('/api/history', methods=['GET'])
+def get_scan_history():
+    """ Return the scanned URL of user
+        route = http://.../api/history?username=username123
+        return {
+            "url": str,
+            "score": float,
+            "threats": list[str],
+            "timestamp": str (IOS format)
+        }
+    """
+    username = request.args.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
+    return jsonify(scan_history(username))
+
+
+@app.route('/api/log-scan', methods=['POST'])
+def log_scan():
+    """Add scanned URL to DB
+        payload = {
+            "username": str,
+            "url": str,
+            "score": float,
+            "threats": list[str],
+            "timestamp": str (IOS format)
+        }
+    """
+    data = request.get_json()
+    username = data.get('username')
+    url = data.get('url')
+    score = data.get('score')
+    threats = data.get('threats', [])
+    timestamp = data.get('timestamp') or datetime.now().isoformat()
+
+    if not all([username, url, score is not None]):
+        return jsonify({"error": "Missing required fields (username, url, score)"}), 400
+
+    try:
+        insert_scan_db(username, url, score, threats, timestamp)
+        return jsonify({"success": True, "message": "Scan logged successfully"}), 200
+    except Exception as e:
+        print(f"[ERROR] Failed to log scan: {e}")
+        return jsonify({"error": "Failed to log scan"}), 500
+
+
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
