@@ -21,20 +21,49 @@ const ScanHistory = () => {
 
   // Load user's scan history from localStorage
   useEffect(() => {
-    if (user) {
-      const savedHistory = localStorage.getItem(`phishguard_scan_history_${user.id}`);
-      if (savedHistory) {
-        setHistory(JSON.parse(savedHistory));
-      }
-    }
-  }, [user]);
+    const fetchHistory = async () => {
+      if (user) {
+        try {
+          // TODO: replace with actual username
+          const response = await fetch(`http://localhost:5001/api/history?username=${encodeURIComponent('user')}`);
+          // const response = await fetch(`http://localhost:5001/api/history?username=${'user'}`);
+          if (!response.ok) throw new Error('Failed to fetch history');
+          const data = await response.json();
 
+          const formatted: ScanRecord[] = data.map((entry: any, idx: number) => ({
+            id: `${idx}-${entry.timestamp}`,
+            url: entry.url,
+            score: entry.score,
+            safe: entry.score > 70,
+            timestamp: entry.timestamp,
+            userId: user.id
+          }));
+
+          setHistory(formatted);
+        } catch (err) {
+          console.error('Error fetching history:', err);
+        }
+      }
+    };
+
+    fetchHistory();
+  }, [user]);
+  // useEffect(() => {
+  //   if (user) {
+  //     const savedHistory = localStorage.getItem(`phishguard_scan_history_${user.id}`);
+  //     if (savedHistory) {
+  //       setHistory(JSON.parse(savedHistory));
+  //     }
+  //   }
+  // }, [user]);
+
+  // TODO: no need to do this in here, already did it in UrlScanner.tsx
   // Save scan history to localStorage whenever it changes
-  useEffect(() => {
-    if (user && history.length > 0) {
-      localStorage.setItem(`phishguard_scan_history_${user.id}`, JSON.stringify(history));
-    }
-  }, [history, user]);
+  // useEffect(() => {
+  //   if (user && history.length > 0) {
+  //     localStorage.setItem(`phishguard_scan_history_${user.id}`, JSON.stringify(history));
+  //   }
+  // }, [history, user]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
