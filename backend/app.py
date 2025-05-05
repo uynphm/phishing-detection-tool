@@ -29,9 +29,14 @@ WEB_PROTOCOLS = ['http', 'https']
 PHISHING_KEYWORDS = ['login', 'verify', 'bank']
 
 app = Flask(__name__)
-CORS(app)
-
-phishtank_blacklist = set()
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "http://localhost:5173",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True,
+    }
+})
 
 @app.route('/api/testsetup')
 def testsetup():
@@ -42,7 +47,7 @@ def testsetup():
         }
     ), 200
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
 def login():
     """Check user's credentials
         payload = {"url": "http://example.com"}
@@ -51,6 +56,9 @@ def login():
             "message": "Login successful/Invalid credentials"
         }
     """
+    if request.method == 'OPTIONS':  # ← Preflight handler
+        return jsonify({'status': 'ok'}), 200
+    
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -64,7 +72,7 @@ def login():
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
 
-@app.route('/api/signup', methods=['POST'])
+@app.route('/api/signup', methods=['POST', 'OPTIONS'])
 def signup():
     """Add user's credentials
         payload = {"url": "http://example.com"}
@@ -73,6 +81,9 @@ def signup():
             "message": "User created successfully/already exists"
         }
     """
+    if request.method == 'OPTIONS':  # ← Preflight handler
+        return jsonify({'status': 'ok'}), 200
+
     data = request.get_json()
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
@@ -87,7 +98,7 @@ def signup():
         return jsonify({"success": False, "message": "User already exists"}), 409
     
 
-@app.route('/api/scan-url', methods=['POST'])
+@app.route('/api/scan-url', methods=['POST', 'OPTIONS'])
 def scan_url():
     """Scan a given URL for phishing risk using rules and Safe Browsing API
         payload = {"url": "http://example.com"}
@@ -98,6 +109,9 @@ def scan_url():
             "timestamp": str (IOS format)
         }
     """
+    if request.method == 'OPTIONS':  # ← Preflight handler
+        return jsonify({'status': 'ok'}), 200
+    
     data = request.json
     url = data.get('url', '').strip()
 
@@ -189,7 +203,7 @@ def check_with_google_safe_browsing(url: str) -> bool:
     return len(data.get("matches", [])) == 0
 
 
-@app.route('/api/history', methods=['GET'])
+@app.route('/api/history', methods=['GET', 'OPTIONS'])
 def get_scan_history():
     """ Return the scanned URL of user
         route = http://.../api/history?username=username123
@@ -200,13 +214,16 @@ def get_scan_history():
             "timestamp": str (IOS format)
         }
     """
+    if request.method == 'OPTIONS':  # ← Preflight handler
+        return jsonify({'status': 'ok'}), 200
+    
     username = request.args.get("username", "").strip()
     if not username:
         return jsonify({"error": "Username is required"}), 400
     return jsonify(scan_history(username))
 
 
-@app.route('/api/log-scan', methods=['POST'])
+@app.route('/api/log-scan', methods=['POST', 'OPTIONS'])
 def log_scan():
     """Add scanned URL to DB
         payload = {
@@ -217,6 +234,9 @@ def log_scan():
             "timestamp": str (IOS format)
         }
     """
+    if request.method == 'OPTIONS':  # ← Preflight handler
+        return jsonify({'status': 'ok'}), 200
+    
     data = request.get_json()
     username = data.get('username')
     url = data.get('url')
@@ -238,4 +258,4 @@ def log_scan():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(port=5001, debug=True)
