@@ -24,9 +24,10 @@ const ScanHistory = () => {
     const fetchHistory = async () => {
       if (user) {
         try {
-          // TODO: replace with actual username
-          const response = await fetch(`http://localhost:5001/api/history?username=${encodeURIComponent('user')}`);
-          // const response = await fetch(`http://localhost:5001/api/history?username=${'user'}`);
+          const response = await fetch('http://localhost:5001/api/history', {
+            method: 'GET',
+            credentials: 'include',
+          });
           if (!response.ok) throw new Error('Failed to fetch history');
           const data = await response.json();
 
@@ -48,22 +49,6 @@ const ScanHistory = () => {
 
     fetchHistory();
   }, [user]);
-  // useEffect(() => {
-  //   if (user) {
-  //     const savedHistory = localStorage.getItem(`phishguard_scan_history_${user.id}`);
-  //     if (savedHistory) {
-  //       setHistory(JSON.parse(savedHistory));
-  //     }
-  //   }
-  // }, [user]);
-
-  // TODO: no need to do this in here, already did it in UrlScanner.tsx
-  // Save scan history to localStorage whenever it changes
-  // useEffect(() => {
-  //   if (user && history.length > 0) {
-  //     localStorage.setItem(`phishguard_scan_history_${user.id}`, JSON.stringify(history));
-  //   }
-  // }, [history, user]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
