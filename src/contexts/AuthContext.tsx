@@ -12,6 +12,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUsername: (username: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
 };
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   signup: async () => {},
   logout: () => {},
+  updateUsername: async () => {},
   isLoading: false,
   error: null,
 });
@@ -115,6 +117,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateUsername = async (username: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (!username.trim()) {
+        throw new Error('Username cannot be empty');
+      }
+
+      if (user) {
+        const updatedUser = { ...user, name: username };
+        setUser(updatedUser);
+        localStorage.setItem('phishguard_user', JSON.stringify(updatedUser));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while updating username');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       const response = await fetch("http://localhost:5001/api/logout", {
@@ -141,7 +167,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user, 
       login, 
       signup, 
-      logout, 
+      logout,
+      updateUsername, 
       isLoading, 
       error
     }}>
