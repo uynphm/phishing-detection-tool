@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { AlertTriangle, CheckCircle, Shield, Copy, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Shield, Copy, Loader2, QrCode } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import QRScanner from './QRScanner';
 
 type ScanResult = {
   url: string;
@@ -17,6 +18,7 @@ const UrlScanner = () => {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [logMessage, setLogMessage] = useState<{text: string, isError: boolean} | null>(null);
+  const [showQRScanner, setShowQRScanner] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +108,20 @@ const UrlScanner = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleQRScan = (scannedUrl: string) => {
+    setUrl(scannedUrl);
+    setShowQRScanner(false);
+    // Remove automatic scan trigger
+  };
+
+  const handleQRScanError = (error: string) => {
+    console.error('QR Scan error:', error);
+    setLogMessage({
+      text: 'Failed to scan QR code. Please try again.',
+      isError: true
+    });
+  };
+
   return (
     <div className={`rounded-xl shadow-lg overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
       <div className={`px-6 py-5 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -116,58 +132,90 @@ const UrlScanner = () => {
       </div>
       
       <div className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative">
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter a URL to check for phishing"
-              className={`w-full px-4 py-3 rounded-lg border ${
-                darkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            />
-            {url && (
+        {showQRScanner ? (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="w-full max-w-md">
+              <QRScanner 
+                onScanSuccess={handleQRScan} 
+                onScanError={handleQRScanError}
+                clearResult={() => setResult(null)}
+                onClose={() => setShowQRScanner(false)}
+              />
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="relative">
+              <input
+                type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="Enter a URL to check for phishing"
+                className={`w-full px-4 py-3 rounded-lg border ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              />
+              {url && (
+                <button
+                  type="button"
+                  onClick={copyToClipboard}
+                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
+                    darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'
+                  }`}
+                >
+                  {copied ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className={`h-4 w-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                  )}
+                </button>
+              )}
+            </div>
+            
+            <div className="flex space-x-3">
               <button
-                type="button"
-                onClick={copyToClipboard}
-                className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
-                  darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-100'
-                }`}
+                type="submit"
+                disabled={isScanning || !url.trim()}
+                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium text-white ${
+                  isScanning || !url.trim()
+                    ? 'bg-blue-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } transition-colors duration-150`}
               >
-                {copied ? (
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                {isScanning ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Scanning...</span>
+                  </>
                 ) : (
-                  <Copy className={`h-4 w-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                  <>
+                    <Shield className="h-5 w-5" />
+                    <span>Scan URL</span>
+                  </>
                 )}
               </button>
-            )}
-          </div>
-          
-          <button
-            type="submit"
-            disabled={isScanning || !url.trim()}
-            className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium text-white ${
-              isScanning || !url.trim()
-                ? 'bg-blue-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-            } transition-colors duration-150`}
-          >
-            {isScanning ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Scanning...</span>
-              </>
-            ) : (
-              <>
-                <Shield className="h-5 w-5" />
-                <span>Scan URL</span>
-              </>
-            )}
-          </button>
-        </form>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowQRScanner(true);
+                  setResult(null);  // Clear previous scan result
+                  setLogMessage(null);  // Clear any previous messages
+                }}
+                className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium ${
+                  darkMode 
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                } transition-colors duration-150`}
+              >
+                <QrCode className="h-5 w-5" />
+                <span>Scan QR</span>
+              </button>
+            </div>
+          </form>
+        )}
         
         {result && (
           <>
