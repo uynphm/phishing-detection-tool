@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
-import { Shield, BarChart3, History, Settings, User, PieChart } from 'lucide-react';
+import { Shield, BarChart3, History, Settings, User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import UrlScanner from '../components/UrlScanner';
 import ScanHistory from '../components/ScanHistory';
 import SettingsPage from './SettingsPage';
+import Analytics from '../components/Analytics';
 
 type SidebarLinkProps = {
   icon: React.ReactNode;
@@ -195,7 +196,7 @@ const DashboardPage = () => {
                 <Routes>
                   <Route path="/" element={<UrlScanner />} />
                   <Route path="/history" element={<ScanHistory />} />
-                  <Route path="/analytics" element={<div>Analytics Content</div>} />
+                  <Route path="/analytics" element={<Analytics />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Routes>
               </div>
