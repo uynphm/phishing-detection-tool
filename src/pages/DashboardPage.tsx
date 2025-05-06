@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Route, Routes, useNavigate } from 'react-router-dom';
-import { Shield, BarChart3, History, Settings, User } from 'lucide-react';
+import { Shield, BarChart3, History, User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import UrlScanner from '../components/UrlScanner';
 import ScanHistory from '../components/ScanHistory';
-import SettingsPage from './SettingsPage';
 import Analytics from '../components/Analytics';
 
 type SidebarLinkProps = {
@@ -65,10 +64,7 @@ const DashboardPage = () => {
                       <User className={`h-5 w-5 ${darkMode ? 'text-blue-300' : 'text-blue-700'}`} />
                     </div>
                     <div>
-                      <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {user?.name}
-                      </p>
-                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                         {user?.email}
                       </p>
                     </div>
@@ -93,12 +89,6 @@ const DashboardPage = () => {
                     text="Analytics"
                     active={activeSection === 'analytics'}
                     onClick={() => navigateTo('/dashboard/analytics', 'analytics')}
-                  />
-                  <SidebarLink
-                    icon={<Settings className="h-5 w-5" />}
-                    text="Settings"
-                    active={activeSection === 'settings'}
-                    onClick={() => navigateTo('/dashboard/settings', 'settings')}
                   />
                 </div>
                 
@@ -172,22 +162,6 @@ const DashboardPage = () => {
                     <BarChart3 className="h-4 w-4" />
                     <span>Analytics</span>
                   </button>
-                  
-                  <button
-                    onClick={() => navigateTo('/dashboard/settings', 'settings')}
-                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium ${
-                      activeSection === 'settings'
-                        ? darkMode 
-                          ? 'bg-blue-900/40 text-blue-400' 
-                          : 'bg-blue-100 text-blue-800'
-                        : darkMode 
-                          ? 'text-gray-300 hover:bg-gray-800' 
-                          : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
-                  </button>
                 </div>
               </div>
               
@@ -197,7 +171,6 @@ const DashboardPage = () => {
                   <Route path="/" element={<UrlScanner />} />
                   <Route path="/history" element={<ScanHistory />} />
                   <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/settings" element={<SettingsPage />} />
                 </Routes>
               </div>
             </main>
