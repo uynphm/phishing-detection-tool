@@ -48,7 +48,7 @@ const UrlScanner = () => {
       
       const result: ScanResult = {
         url,
-        safe: data.score > 0.3,
+        safe: data.score > 80,
         score: data.score,
         threats: data.threats,
         timestamp: new Date().toISOString()
