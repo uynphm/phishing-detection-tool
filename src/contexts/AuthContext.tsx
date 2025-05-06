@@ -4,6 +4,7 @@ type User = {
   id: string;
   email: string;
   name: string;
+  password?: string; // optional — only required for signup
 };
 
 type AuthContextType = {
@@ -43,20 +44,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (email === 'demo@example.com' && password === 'password') {
-        const mockUser = { 
-          id: '1', 
-          email, 
-          name: 'Demo User'
-        };
+      const response = await fetch("http://localhost:5001/api/login", {
+        method: 'POST',
+        credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: email, password})
+      });
+      const data = await response.json()
 
-        setUser(mockUser);
-        localStorage.setItem('phishguard_user', JSON.stringify(mockUser));
-      } else {
-        throw new Error('Invalid email or password');
+      if (data.id == null) {
+        throw new Error(data.message);
       }
+
+      const loggedInUser = { 
+        id: data.id,
+        email, 
+        name: "Demo"
+      };
+      setUser(loggedInUser);
+      localStorage.setItem('phishguard_user', JSON.stringify(loggedInUser));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during login');
       throw err;
@@ -70,17 +76,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Simple email format check
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
       // Validate password length for security
       if (password.length < 8) {
         throw new Error('Password must be at least 8 characters long');
       }
 
+      const response = await fetch("http://localhost:5001/api/signup", {
+        method: 'POST',
+        credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: email, password})
+      });
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.message);
+      }
+
       const newUser = { 
-        id: Date.now().toString(), 
-        email, 
-        name
+        id: email,
+        email: email, 
+        password: password,
+        name: "Demo"
       };
       setUser(newUser);
       localStorage.setItem('phishguard_user', JSON.stringify(newUser));
@@ -92,9 +115,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('phishguard_user');
+  const logout = async () => {
+    try {
+      const response = await fetch("http://localhost:5001/api/logout", {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Logout failed');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('phishguard_user');
+    }
   };
 
   return (
