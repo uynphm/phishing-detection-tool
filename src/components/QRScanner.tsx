@@ -49,6 +49,7 @@ const QRScanner = ({ onScanSuccess, onScanError, onClose, clearResult }: QRScann
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    clearResult();
   };
 
   const scanQRCode = async (file: File) => {
