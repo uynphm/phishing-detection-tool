@@ -44,7 +44,6 @@ const UrlScanner = () => {
       //   "threats": ["URL safe"]
       // }
       const data = await response.json();
-      console.log("Scan response:", response);
       
       const result: ScanResult = {
         url,
@@ -60,11 +59,9 @@ const UrlScanner = () => {
         try {
           const logResponse = await fetch('http://localhost:5001/api/log-scan', {
             method: 'POST',
+            credentials: 'include',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-              username: "user", // TODO: replace with actual username
-              ...result
-            })
+            body: JSON.stringify({...result})
           });
           
           const logData = await logResponse.json();

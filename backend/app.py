@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from urllib.parse import urlparse
 from enum import Enum
@@ -10,6 +10,7 @@ from datetime import datetime
 import re
 import requests
 import os
+import hashlib
 
 class Threat(Enum):
     INVALID_PROTOCOL = "Invalid URL protocol"
@@ -29,9 +30,10 @@ WEB_PROTOCOLS = ['http', 'https']
 PHISHING_KEYWORDS = ['login', 'verify', 'bank']
 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY") or "dev-secret"
 CORS(app, resources={
     r"/api/*": {
-        "origins": "http://localhost:5175",
+        "origins": "http://localhost:5173",
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True,
@@ -50,8 +52,12 @@ def testsetup():
 @app.route('/api/login', methods=['POST', 'OPTIONS'])
 def login():
     """Check user's credentials
-        payload = {"url": "http://example.com"}
+        payload = {
+            "username": string,
+            "password": string
+        }
         Return {
+            "id": string
             "success": True/False, 
             "message": "Login successful/Invalid credentials"
         }
@@ -64,18 +70,23 @@ def login():
     password = data.get('password')
 
     if not username or not password:
-        return jsonify({"success": False, "message": "Username and password required"}), 400
-
-    if check_user_credentials(username, password):
-        return jsonify({"success": True, "message": "Login successful"}), 200
+        return jsonify({"id": None, "success": False, "message": "Username and password required"}), 400
+    
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+    if check_user_credentials(username, hashed_password):
+        session['username'] = username  # store in session
+        return jsonify({"id": username, "success": True, "message": "Login successful"}), 200
     else:
-        return jsonify({"success": False, "message": "Invalid credentials"}), 401
+        return jsonify({"id": None, "success": False, "message": "Invalid credentials"}), 401
 
 
 @app.route('/api/signup', methods=['POST', 'OPTIONS'])
 def signup():
     """Add user's credentials
-        payload = {"url": "http://example.com"}
+        payload = {
+            "username": string,
+            "password": string
+        }
         return {
             "success": True/False, 
             "message": "User created successfully/already exists"
@@ -91,11 +102,21 @@ def signup():
     if not username or not password:
         return jsonify({"success": False, "message": "Username and password are required"}), 400
 
-    success = create_user(username, password)
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+    success = create_user(username, hashed_password)
     if success:
+        session['username'] = username
         return jsonify({"success": True, "message": "User created successfully"}), 201
     else:
         return jsonify({"success": False, "message": "User already exists"}), 409
+    
+
+@app.route('/api/logout', methods=['POST', 'OPTIONS'])
+def logout():
+    if request.method == 'OPTIONS':  # ← Preflight handler
+        return jsonify({'status': 'ok'}), 200
+    session.pop('username', None)
+    return jsonify({"success": True, "message": "Logout successful"}), 200
     
 
 @app.route('/api/scan-url', methods=['POST', 'OPTIONS'])
@@ -206,7 +227,7 @@ def check_with_google_safe_browsing(url: str) -> bool:
 @app.route('/api/history', methods=['GET', 'OPTIONS'])
 def get_scan_history():
     """ Return the scanned URL of user
-        route = http://.../api/history?username=username123
+        route = http://.../api/history
         return {
             "url": str,
             "score": float,
@@ -217,9 +238,9 @@ def get_scan_history():
     if request.method == 'OPTIONS':  # ← Preflight handler
         return jsonify({'status': 'ok'}), 200
     
-    username = request.args.get("username", "").strip()
+    username = session.get('username')
     if not username:
-        return jsonify({"error": "Username is required"}), 400
+        return jsonify({"error": "Username is missing"}), 400
     return jsonify(scan_history(username))
 
 
@@ -227,7 +248,6 @@ def get_scan_history():
 def log_scan():
     """Add scanned URL to DB
         payload = {
-            "username": str,
             "url": str,
             "score": float,
             "threats": list[str],
@@ -238,7 +258,8 @@ def log_scan():
         return jsonify({'status': 'ok'}), 200
     
     data = request.get_json()
-    username = data.get('username')
+    print("Session contents:", session)  # Debug what's in the session
+    username = session.get('username')
     url = data.get('url')
     score = data.get('score')
     threats = data.get('threats', [])
