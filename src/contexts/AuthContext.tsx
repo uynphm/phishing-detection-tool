@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const loggedInUser = { 
         id: data.id,
         email, 
-        name: "Demo"
+        name: data.name || email // Use backend name if available, fallback to email
       };
       setUser(loggedInUser);
       localStorage.setItem('phishguard_user', JSON.stringify(loggedInUser));
@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         id: email,
         email: email, 
         password: password,
-        name: "Demo"
+        name: name
       };
       setUser(newUser);
       localStorage.setItem('phishguard_user', JSON.stringify(newUser));

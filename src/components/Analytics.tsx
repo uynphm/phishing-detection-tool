@@ -4,12 +4,20 @@ import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 
+interface ScanResult {
+  url: string;
+  safe: boolean;
+  score: number;
+  threats: string[];
+  timestamp: string;
+}
+
 const Analytics = () => {
   const { darkMode } = useTheme();
   const { user } = useAuth();
 
   // State for scan history
-  const [history, setHistory] = useState<{ safe: boolean; url: string }[]>([]);
+  const [history, setHistory] = useState<ScanResult[]>([]);
 
   // Calculate statistics for the pie chart and insights
   const safeCount = history.filter(entry => entry.safe).length;
@@ -251,12 +259,18 @@ const Analytics = () => {
     const fetchHistory = async () => {
       if (user) {
         try {
-          const response = await fetch(`http://localhost:5001/api/history?username=${encodeURIComponent('user')}`);
+          const response = await fetch('http://localhost:5001/api/history', {
+            method: 'GET',
+            credentials: 'include',
+          });
           if (!response.ok) throw new Error('Failed to fetch history');
           const data = await response.json();
           setHistory(data.map((entry: any) => ({
-            safe: entry.score > 70,
-            url: entry.url
+            url: entry.url,
+            safe: entry.score > 70,  // Match ScanHistory's threshold
+            score: entry.score,
+            threats: entry.threats || [],
+            timestamp: entry.timestamp
           })));
         } catch (err) {
           console.error('Error fetching history:', err);
@@ -290,9 +304,9 @@ const Analytics = () => {
         </div>
       </div>
       {/* Content */}
-      <div className="p-6 flex flex-col items-center">
-        {/* Pie chart for safe/unsafe URLs */}
-        {total > 0 ? (
+      {total > 0 ? (
+        <div className="p-6 flex flex-col items-center">
+          {/* Pie chart for safe/unsafe URLs */}
           <div style={{ width: 300, height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -314,22 +328,20 @@ const Analytics = () => {
               </PieChart>
             </ResponsiveContainer>
           </div>
-        ) : (
-          <p className="mt-6">{insight}</p>
-        )}
-        {/* Insights section */}
-        <div className="p-6 text-center">
-          <h3 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white inline-flex items-center">
-            <svg className="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-            </svg>
-            Security Insights
-          </h3>
-          <div className="max-w-2xl mx-auto">
-            <div dangerouslySetInnerHTML={{ __html: insight }} className="prose dark:prose-invert max-w-none" />
+          {/* Insights section */}
+          <div className="p-6 text-center">
+            <h3 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white inline-flex items-center">
+              <svg className="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+              </svg>
+              Security Insights
+            </h3>
+            <div className="max-w-2xl mx-auto">
+              <div dangerouslySetInnerHTML={{ __html: insight }} className="prose dark:prose-invert max-w-none" />
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 };
